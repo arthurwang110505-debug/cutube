@@ -6,8 +6,19 @@ import "@fontsource/ibm-plex-mono/500.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "CutterTube — make the cut, keep the moment",
-  description: "A thoughtful little studio for clipping, previewing and sharing the best moments from YouTube.",
+  title: "CutterTube — Create and share YouTube clips",
+  description: "Choose a moment, fine-tune the timecodes, preview it, and share a link. No account needed; videos stay on YouTube.",
+  applicationName: "CutterTube",
+  openGraph: {
+    title: "CutterTube — Create and share YouTube clips",
+    description: "Find the moment. Set the cut. Share a time-range link — no account needed.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "CutterTube — Create and share YouTube clips",
+    description: "Find the moment. Set the cut. Share a time-range link — no account needed.",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

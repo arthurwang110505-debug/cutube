@@ -92,9 +92,11 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
 .source-help button { border: 0; background: transparent; color: #d3dfbe; font-size: 11px; font-weight: 600; padding: 0; white-space: nowrap; }
 .source-help button:hover { color: var(--lime); }
 .source-help button:disabled { opacity: .55; }
+.hero-trust { display: flex; align-items: center; gap: 7px; width: min(100%, 795px); margin: 11px 0 0; color: #a4ad9d; font-size: 10px; line-height: 1.5; }
+.hero-trust svg { flex: 0 0 auto; color: #b6d18f; }
 .source-error, .field-error { color: #ffb4a7; font-size: 11px; line-height: 1.5; }
 .source-error { margin: 10px 0 0; }
-.editor-section { padding: 0 0 20px; }
+.editor-section { padding: 0 0 20px; scroll-margin-top: 76px; }
 .section-heading, .how-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 15px; margin: 0 0 18px; }
 .section-heading h2, .how-head h2 { margin: 10px 0 0; font-family: var(--display); font-size: 25px; letter-spacing: -.045em; font-weight: 550; line-height: 1.1; }
 .heading-period, .inspector h3 span, .share-info h2 span, .faq-section h2 span { color: var(--lime); }

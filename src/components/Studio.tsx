@@ -51,6 +51,7 @@ function TimeField({ id, label, value, disabled, onCommit, onNudge, onStamp }: {
 
 export default function Studio() {
   const playerRef = useRef<PlayerHandle>(null);
+  const editorSectionRef = useRef<HTMLElement>(null);
   const initialized = useRef(false);
   const loadController = useRef<AbortController | null>(null);
   const [urlInput, setUrlInput] = useState("");
@@ -101,6 +102,9 @@ export default function Studio() {
       setNote(restored?.note ?? ""); setShowNote(Boolean(restored?.note)); setUrlInput(watchUrl(nextVideo.videoId));
       setLastSaved(""); setManualLink(""); setLoadError(null);
       if (!restored) window.history.replaceState(null, "", "/");
+      // On small screens the loaded editor may be below the fold. Bring the next
+      // step into view so users can start trimming without hunting for it.
+      window.requestAnimationFrame(() => editorSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
     } catch (error) {
       if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : "Couldn’t load that video. Please try again.");
     } finally { if (!controller.signal.aborted) setLoading(false); }
@@ -243,11 +247,12 @@ export default function Studio() {
         <input id="video-url" value={urlInput} onChange={(event) => { setUrlInput(event.target.value); setLoadError(null); }} placeholder="Paste a YouTube link to get started" autoComplete="off" spellCheck={false} aria-describedby={loadError ? "source-error" : "source-help"} />
         <button type="submit" disabled={loading} className="source-button">{loading ? <><LoaderCircle size={16} className="spin" /> Loading</> : <>Let’s get clipping <ArrowRight size={17} /></>}</button>
       </form>
-      <div className="source-help" id="source-help"><span><ShieldCheck size={14} /> Supports YouTube links, Shorts &amp; video IDs</span><button type="button" onClick={() => void loadVideo("https://www.youtube.com/watch?v=aqz-KE-bpKQ")} disabled={loading}>Try an example <ArrowUpRight size={14} /></button></div>
+      <div className="source-help" id="source-help"><span><ShieldCheck size={14} /> YouTube links, Shorts &amp; video IDs</span><button type="button" onClick={() => void loadVideo("https://www.youtube.com/watch?v=aqz-KE-bpKQ")} disabled={loading}>Try an example <ArrowUpRight size={14} /></button></div>
+      <p className="hero-trust"><ShieldCheck size={14} /> No sign-up. Your video stays on YouTube; CutterTube creates a shareable time-range link.</p>
       {loadError && <p className="source-error" id="source-error" role="alert">{loadError}</p>}
     </section>
 
-    <section className="editor-section" aria-labelledby="editor-heading">
+    <section ref={editorSectionRef} className="editor-section" aria-labelledby="editor-heading">
       <div className="section-heading"><div><div className="section-overline"><span>✳</span> YOUR WORKSPACE <span className="overline-rule" /> 01 / 03</div><h2 id="editor-heading">The cutting room<span className="heading-period">.</span></h2></div><div className="workspace-status"><span className={video ? "green-dot" : "status-dot"} /> {video ? "VIDEO LOADED" : "AWAITING YOUR VIDEO"}</div></div>
       <div className="editor-grid">
         <div className="editor-main panel">
@@ -315,6 +320,11 @@ export default function Studio() {
     <section className="how-section" aria-labelledby="how-title"><div className="how-head"><div><div className="section-overline"><span>✳</span> THE LITTLE HOW-TO <span className="overline-rule" /> 03 / 03</div><h2 id="how-title">Big moments, <em>little cuts.</em></h2></div><Link href="/guides">All the details <ArrowUpRight size={15} /></Link></div>
       <div className="steps-grid"><article><span className="step-number">01</span><div className="step-icon"><Link2 size={18} /></div><h3>Drop in a link</h3><p>Paste a YouTube URL and we’ll open up your workspace.</p></article><article><span className="step-number">02</span><div className="step-icon peach"><Scissors size={18} /></div><h3>Find your moment</h3><p>Fine-tune the in and out points, then preview your selection.</p></article><article><span className="step-number">03</span><div className="step-icon lilac"><WandSparkles size={18} /></div><h3>Send it out</h3><p>Save it here, share a link, or export the details of your cut.</p></article></div>
     </section>
+    <section className="faq-section" aria-labelledby="faq-title"><div className="section-overline"><span>✳</span> GOOD TO KNOW</div><h2 id="faq-title">A few quick answers<span>.</span></h2><div className="faq-list">
+      <details><summary>Does CutterTube upload or host videos?<span>＋</span></summary><p>No. The preview uses YouTube’s embedded player. A shared clip link points to the original YouTube video with your selected time range.</p></details>
+      <details><summary>Do I need an account?<span>＋</span></summary><p>No account is needed. Saved clips live in this browser only and are not synced; sharing uses a link that anyone who has it can open.</p></details>
+      <details><summary>Can I download an MP4 directly?<span>＋</span></summary><p>Direct server rendering is optional and may not be enabled on this deployment. You can still share a clip or export its timecodes and a local render script. Only use content you have permission to use.</p></details>
+    </div></section>
     <footer className="workspace-footer"><span><Film size={14} /> MADE FOR THE MOMENTS THAT MATTER.</span><span>Only use content you own or have permission to use. <Link href="/guides">Learn more ↗</Link></span></footer>
     {toast && <div className="toast" role="status"><Check size={15} /> {toast}</div>}
   </div>;
