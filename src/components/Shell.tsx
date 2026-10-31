@@ -3,12 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { ArrowUpRight, BookOpen, Clapperboard, FolderHeart, Plus, Scissors, Sparkles } from "lucide-react";
+import { ArrowUpRight, BookOpen, Clapperboard, FolderHeart, GraduationCap, Plus, Scissors, Sparkles } from "lucide-react";
 import { LIBRARY_EVENT, readLibrary } from "@/lib/library";
 
 const links = [
   { href: "/", label: "Studio", icon: Clapperboard },
   { href: "/library", label: "My clips", icon: FolderHeart },
+  { href: "/learn", label: "Learn", icon: GraduationCap },
   { href: "/guides", label: "Quick guide", icon: BookOpen },
 ];
 
@@ -29,7 +30,7 @@ export default function Shell({ children }: { children: ReactNode }) {
     window.addEventListener("storage", refresh);
     return () => { window.removeEventListener(LIBRARY_EVENT, refresh); window.removeEventListener("storage", refresh); };
   }, []);
-  const current = pathname === "/library" ? "My clips" : pathname === "/guides" ? "Quick guide" : pathname === "/clip" ? "Shared clip" : "Studio";
+  const current = pathname === "/library" ? "My clips" : pathname === "/learn" ? "Learn" : pathname === "/guides" ? "Quick guide" : pathname === "/clip" ? "Shared clip" : "Studio";
   return <div className="app-shell">
     <aside className="sidebar">
       <Brand />

@@ -17,6 +17,7 @@ type Props = {
 export default function Timeline({ videoId, durationMs, startMs, endMs, playheadMs, onRange, onSeek }: Props) {
   const track = useRef<HTMLDivElement>(null);
   const drag = useRef<"start" | "end" | "seek" | null>(null);
+  const dragOffset = useRef(0);
   const [dragging, setDragging] = useState(false);
   const usable = Boolean(videoId && durationMs >= MIN_CLIP_MS);
   const startPct = usable ? clamp(startMs / durationMs * 100, 0, 100) : 19;
@@ -36,11 +37,25 @@ export default function Timeline({ videoId, durationMs, startMs, endMs, playhead
     if (!usable) return;
     const handle = (event.target as HTMLElement).closest<HTMLElement>("[data-handle]")?.dataset.handle;
     drag.current = handle === "start" || handle === "end" ? handle : "seek";
+    const pointerTime = fromX(event.clientX);
+    // When hit areas overlap, use the nearest boundary rather than DOM stacking order.
+    if (drag.current !== "seek") {
+      const bounds = track.current?.getBoundingClientRect();
+      if (bounds) {
+        const startX = bounds.left + startMs / durationMs * bounds.width;
+        const endX = bounds.left + endMs / durationMs * bounds.width;
+        if (Math.abs(event.clientX - startX) <= 22 && Math.abs(event.clientX - endX) <= 22) {
+          drag.current = Math.abs(event.clientX - startX) <= Math.abs(event.clientX - endX) ? "start" : "end";
+        }
+      }
+    }
+    // Keep a handle at its current position when a user grabs its larger hit area.
+    dragOffset.current = drag.current === "start" ? startMs - pointerTime : drag.current === "end" ? endMs - pointerTime : 0;
     setDragging(true);
     event.currentTarget.setPointerCapture(event.pointerId);
-    apply(drag.current, fromX(event.clientX));
+    if (drag.current === "seek") apply("seek", pointerTime);
   };
-  const pointerMove = (event: React.PointerEvent<HTMLDivElement>) => { if (drag.current) apply(drag.current, fromX(event.clientX)); };
+  const pointerMove = (event: React.PointerEvent<HTMLDivElement>) => { if (drag.current) apply(drag.current, fromX(event.clientX) + dragOffset.current); };
   const pointerEnd = () => { drag.current = null; setDragging(false); };
   const keyHandle = (event: React.KeyboardEvent, kind: "start" | "end") => {
     if (!usable) return;
@@ -56,6 +71,7 @@ export default function Timeline({ videoId, durationMs, startMs, endMs, playhead
   };
   return <div className="timeline-block">
     <div className="timeline-heading"><div><span className="section-kicker">THE TIMELINE</span><span className="timeline-subtitle">{usable ? "Drag the handles to find your moment" : videoId ? "Waiting for video duration" : "Your selection will appear here"}</span></div><span className="timeline-duration">{usable ? formatShort(durationMs) : "— : —"}</span></div>
+    <p id="timeline-instructions" className="timeline-instructions">Drag the green handles to trim. Tap the track to move the white playhead. Use arrow keys on a focused handle for 0.1-second adjustments; hold Shift for 1 second.</p>
     <div ref={track} className={`timeline-track ${!usable ? "timeline-disabled" : ""} ${dragging ? "is-dragging" : ""}`} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerEnd} onPointerCancel={pointerEnd} onLostPointerCapture={pointerEnd} aria-label="Video timeline">
       <div className="filmstrip" style={{ backgroundImage: `linear-gradient(90deg, rgba(24,26,23,.24), rgba(24,26,23,.24)), url("${videoId ? thumbnailUrl(videoId) : "/studio-placeholder.jpg"}")` }} />
       <div className="film-grid" />
@@ -63,9 +79,9 @@ export default function Timeline({ videoId, durationMs, startMs, endMs, playhead
       <div className="timeline-dim" style={{ left: `${endPct}%`, right: 0 }} />
       <div className="timeline-selection" style={{ left: `${startPct}%`, width: `${Math.max(0, endPct - startPct)}%` }} />
       <div className="timeline-playhead" style={{ left: `${playPct}%` }}><span /></div>
-      {(["start", "end"] as const).map((kind) => <div key={kind} data-handle={kind} role="slider" aria-label={`${kind === "start" ? "Start" : "End"} point`} aria-valuemin={usable ? (kind === "start" ? 0 : startMs + MIN_CLIP_MS) : undefined} aria-valuemax={usable ? (kind === "start" ? endMs - MIN_CLIP_MS : durationMs) : undefined} aria-valuenow={usable ? (kind === "start" ? startMs : endMs) : undefined} aria-valuetext={usable ? formatTime(kind === "start" ? startMs : endMs) : undefined} aria-disabled={!usable} tabIndex={usable ? 0 : -1} onKeyDown={(event) => keyHandle(event, kind)} className="timeline-handle" style={{ left: `${kind === "start" ? startPct : endPct}%` }}><span>Ⅱ</span></div>)}
+      {(["start", "end"] as const).map((kind) => <div key={kind} data-handle={kind} role="slider" aria-label={`${kind === "start" ? "Start" : "End"} point`} aria-valuemin={usable ? (kind === "start" ? 0 : startMs + MIN_CLIP_MS) : undefined} aria-valuemax={usable ? (kind === "start" ? endMs - MIN_CLIP_MS : durationMs) : undefined} aria-valuenow={usable ? (kind === "start" ? startMs : endMs) : undefined} aria-valuetext={usable ? formatTime(kind === "start" ? startMs : endMs) : undefined} aria-disabled={!usable} aria-describedby="timeline-instructions" tabIndex={usable ? 0 : -1} onKeyDown={(event) => keyHandle(event, kind)} className="timeline-handle" style={{ left: `${kind === "start" ? startPct : endPct}%` }}><span>Ⅱ</span></div>)}
     </div>
     <div className="timeline-ruler">{Array.from({ length: 5 }, (_, i) => <span key={i}>{usable ? formatShort(durationMs * i / 4) : i === 0 ? "00:00" : "·"}</span>)}</div>
-    {!usable && videoId && <p className="timeline-hint">If the player is unavailable, you can still type exact times on the right.</p>}
+    {!usable && videoId && <p className="timeline-hint">If the player is unavailable, you can still type exact times in Clip settings.</p>}
   </div>;
 }

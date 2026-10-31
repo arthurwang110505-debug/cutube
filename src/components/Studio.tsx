@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
-  ArrowDownToLine, ArrowRight, ArrowUpRight, Check, ChevronDown, CircleHelp, Clapperboard,
+  ArrowDownToLine, ArrowRight, ArrowUpRight, Check, ChevronDown, Clapperboard,
   Clock3, Copy, Film, Link2, LoaderCircle, Repeat2, Pause, Play, RotateCcw,
   Scissors, ShieldCheck, Sparkles, Volume2, WandSparkles,
 } from "lucide-react";
@@ -104,7 +104,7 @@ export default function Studio() {
       if (!restored) window.history.replaceState(null, "", "/");
       // On small screens the loaded editor may be below the fold. Bring the next
       // step into view so users can start trimming without hunting for it.
-      window.requestAnimationFrame(() => editorSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+      window.requestAnimationFrame(() => editorSectionRef.current?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" }));
     } catch (error) {
       if (!controller.signal.aborted) setLoadError(error instanceof Error ? error.message : "Couldn’t load that video. Please try again.");
     } finally { if (!controller.signal.aborted) setLoading(false); }
@@ -245,16 +245,17 @@ export default function Studio() {
         <span className="source-icon"><Link2 size={19} strokeWidth={1.7} /></span>
         <label className="sr-only" htmlFor="video-url">YouTube video link</label>
         <input id="video-url" value={urlInput} onChange={(event) => { setUrlInput(event.target.value); setLoadError(null); }} placeholder="Paste a YouTube link to get started" autoComplete="off" spellCheck={false} aria-describedby={loadError ? "source-error" : "source-help"} />
-        <button type="submit" disabled={loading} className="source-button">{loading ? <><LoaderCircle size={16} className="spin" /> Loading</> : <>Let’s get clipping <ArrowRight size={17} /></>}</button>
+        <button type="submit" disabled={loading} className="source-button">{loading ? <><LoaderCircle size={16} className="spin" /> Loading</> : <>Load video <ArrowRight size={17} /></>}</button>
       </form>
       <div className="source-help" id="source-help"><span><ShieldCheck size={14} /> YouTube links, Shorts &amp; video IDs</span><button type="button" onClick={() => void loadVideo("https://www.youtube.com/watch?v=aqz-KE-bpKQ")} disabled={loading}>Try an example <ArrowUpRight size={14} /></button></div>
+      <ol className="workflow-steps" aria-label="How to make a clip"><li className={!video ? "current" : ""}><span>1</span> Add video</li><li className={video ? "current" : ""}><span>2</span> Choose range</li><li><span>3</span> Share or save</li></ol>
       <p className="hero-trust"><ShieldCheck size={14} /> No sign-up. Your video stays on YouTube; CutterTube creates a shareable time-range link.</p>
       {loadError && <p className="source-error" id="source-error" role="alert">{loadError}</p>}
     </section>
 
     <section ref={editorSectionRef} className="editor-section" aria-labelledby="editor-heading">
       <div className="section-heading"><div><div className="section-overline"><span>✳</span> YOUR WORKSPACE <span className="overline-rule" /> 01 / 03</div><h2 id="editor-heading">The cutting room<span className="heading-period">.</span></h2></div><div className="workspace-status"><span className={video ? "green-dot" : "status-dot"} /> {video ? "VIDEO LOADED" : "AWAITING YOUR VIDEO"}</div></div>
-      <div className="editor-grid">
+      {!video ? <div className="editor-empty panel"><div className="editor-empty-icon"><Clapperboard size={22} aria-hidden="true" /></div><div><h3>Your cutting room is ready</h3><p>Load a YouTube video above, or try the example, to choose a moment and share it.</p></div></div> : <div className="editor-grid">
         <div className="editor-main panel">
           <div className="panel-topline"><div><span className="panel-top-icon"><Clapperboard size={15} /></span><strong>Video preview</strong><span className="panel-separator">/</span><span>{video ? "YOUR SOURCE" : "YOUR CANVAS"}</span></div><span className="panel-index">01 — PREVIEW</span></div>
           <VideoPlayer key={`${video?.videoId ?? "empty"}-${sourceRevision}`} ref={playerRef} video={video} startMs={range.start} endMs={range.end} loop={loop} onTime={handleTime} onDuration={handleDuration} onPlaying={handlePlaying} onReady={handleReady} />
@@ -268,11 +269,17 @@ export default function Studio() {
           </div>
           {video && <div className="video-meta"><div><strong>{video.title}</strong><span>{video.channel || (video.metadataSource === "fallback" ? "Metadata unavailable — timecodes still work" : "YouTube video")}</span></div><a href={watchUrl(video.videoId)} target="_blank" rel="noreferrer" aria-label="Open source video on YouTube"><ArrowUpRight size={16} /></a></div>}
           <Timeline videoId={video?.videoId} durationMs={durationMs} startMs={range.start} endMs={range.end} playheadMs={playhead} onRange={setRange} onSeek={seek} />
+          <details className="shortcut-help">
+            <summary>Keyboard shortcuts</summary>
+            <p>When focus is outside a control:</p>
+            <ul><li><kbd>Space</kbd> Play or pause</li><li><kbd>I</kbd> or <kbd>[</kbd> Set start to playhead</li><li><kbd>O</kbd> or <kbd>]</kbd> Set end to playhead</li><li><kbd>←</kbd> / <kbd>→</kbd> Seek 1 second; hold <kbd>Shift</kbd> for 10 seconds</li><li><kbd>L</kbd> Toggle loop</li></ul>
+          </details>
         </div>
         <aside className="inspector panel" aria-label="Clip settings">
           <div className="inspector-heading"><div className="inspector-icon"><Scissors size={17} /></div><div><span className="section-kicker">YOUR CLIP</span><h3>Make the cut<span>.</span></h3></div><span className="panel-index">02 — EDIT</span></div>
           <p className="inspector-description">The perfect moment is in the details.</p>
           <div className="inspector-rule" />
+          <p className="editing-help">Drag the timeline handles, type a time, or set a point to the playhead. YouTube playback may seek approximately.</p>
           <TimeField id="start-time" label="Start time" value={range.start} disabled={!video} onCommit={(value) => commitTime("start", value)} onNudge={(value) => nudge("start", value)} onStamp={() => setRange(Math.min(playhead, range.end - MIN_CLIP_MS), range.end)} />
           <div className="time-connector"><span /><Scissors size={12} /><span /></div>
           <TimeField id="end-time" label="End time" value={range.end} disabled={!video} onCommit={(value) => commitTime("end", value)} onNudge={(value) => nudge("end", value)} onStamp={() => setRange(range.start, Math.max(playhead, range.start + MIN_CLIP_MS))} />
@@ -293,27 +300,30 @@ export default function Studio() {
             <button type="button" id="output-tab-download" role="tab" aria-controls="output-panel-download" tabIndex={tab === "download" ? 0 : -1} aria-selected={tab === "download"} onClick={() => setTab("download")}>Download file</button>
           </div>
           {tab === "share" ? <div id="output-panel-share" className="share-panel" role="tabpanel" aria-labelledby="output-tab-share">
-            <button type="button" className="primary-action" disabled={!clip || Boolean(clipError) || alreadySaved} onClick={saveClip}>{alreadySaved ? <><Check size={17} /> Saved to My clips</> : <><Sparkles size={17} /> Save this clip <ArrowRight className="action-arrow" size={17} /></>}</button>
+            <button type="button" className="primary-action" disabled={!clip || Boolean(clipError) || alreadySaved} onClick={saveClip}>{alreadySaved ? <><Check size={17} /> Saved to My clips</> : <><Sparkles size={17} /> Save to this browser <ArrowRight className="action-arrow" size={17} /></>}</button>
             <button type="button" className="secondary-action" disabled={!clip || Boolean(clipError)} onClick={() => void copyLink()}><Copy size={15} /> Copy clip link</button>
             {manualLink && <label className="manual-link">Copy this link<input readOnly value={manualLink} onFocus={(event) => event.currentTarget.select()} /></label>}
-            <p className="fine-print"><ShieldCheck size={13} /> Saved on this browser. Anyone with the link can view your clip.</p>
+            <p className="fine-print"><ShieldCheck size={13} /> Saved clips stay in this browser. Anyone with the link can view its title and note.</p>
             <button type="button" className="more-exports" onClick={() => setShowExports(!showExports)} aria-expanded={showExports}>More export options <ChevronDown size={15} className={showExports ? "rotated" : ""} /></button>
             {showExports && <div className="export-list">{EXPORTS.map((item) => <button key={item.id} type="button" disabled={!clip || Boolean(clipError)} onClick={() => { if (clip) downloadExport(item.id, clip); }}>{item.label}<ArrowDownToLine size={14} /></button>)}</div>}
           </div> : <div id="output-panel-download" className="download-panel" role="tabpanel" aria-labelledby="output-tab-download">
-            <p className="download-explainer">Render a video or audio file on a configured server.</p>
-            <div className="format-row" aria-label="Output format">{(["mp4", "webm", "mp3"] as const).map((option) => <button type="button" key={option} className={format === option ? "selected" : ""} onClick={() => setFormat(option)} aria-pressed={format === option}>{option.toUpperCase()}</button>)}</div>
-            {format !== "mp3" && <label className="quality-field">QUALITY <select value={height} onChange={(event) => setHeight(Number(event.target.value))}>{[360, 480, 720, 1080].map((value) => <option key={value} value={value}>{value}p maximum</option>)}</select></label>}
-            <button type="button" className="primary-action" disabled={!clip || Boolean(clipError) || Boolean(renderRangeError) || !health?.ready || rendering || isBusy} onClick={() => void startRender()}><ArrowDownToLine size={16} /> {rendering ? "Starting…" : `Render ${format.toUpperCase()}`}<ArrowRight className="action-arrow" size={17} /></button>
-            {!health?.ready && <p className="render-notice"><CircleHelp size={14} /> {health?.message ?? "Checking server rendering…"}</p>}
-            {health?.ready && <p className="fine-print"><Clock3 size={13} /> Keep this tab open. Renders support 1 second to 10 minutes; files expire after 24 hours.</p>}
-            {renderRangeError && <p className="field-error">{renderRangeError}</p>}
+            <div className="render-status" role="status"><strong>{!health ? "Checking rendering availability…" : health.ready ? "Server rendering available" : "Server rendering unavailable"}</strong><p>{!health ? "Please wait while we check this server." : health.ready ? "Choose a format to render a video or audio file." : health.message}</p></div>
+            {health?.ready && <>
+              <div className="format-row" aria-label="Output format">{(["mp4", "webm", "mp3"] as const).map((option) => <button type="button" key={option} className={format === option ? "selected" : ""} onClick={() => setFormat(option)} aria-pressed={format === option}>{option.toUpperCase()}</button>)}</div>
+              {format !== "mp3" && <label className="quality-field">QUALITY <select value={height} onChange={(event) => setHeight(Number(event.target.value))}>{[360, 480, 720, 1080].map((value) => <option key={value} value={value}>{value}p maximum</option>)}</select></label>}
+              <button type="button" className="primary-action" disabled={!clip || Boolean(clipError) || Boolean(renderRangeError) || rendering || isBusy} onClick={() => void startRender()}><ArrowDownToLine size={16} /> {rendering ? "Starting…" : `Render ${format.toUpperCase()}`}<ArrowRight className="action-arrow" size={17} /></button>
+              <p className="fine-print"><Clock3 size={13} /> Keep this tab open: refreshing loses the job. Renders support 1 second to 10 minutes; completed files expire after 24 hours.</p>
+            </>}
+            {health?.ready && renderRangeError && <p className="field-error">{renderRangeError}</p>}
+            <p className="download-explainer script-explainer">Prefer to render on your own machine? Download a script for use with yt-dlp and FFmpeg.</p>
             <button type="button" className="more-exports script-link" disabled={!clip || Boolean(clipError)} onClick={() => { if (clip) downloadExport("sh", clip); }}>Download local render script <ArrowDownToLine size={14} /></button>
-            {job && <div className="job-card" aria-live="polite"><div><strong>{job.phase}</strong><span>{job.status === "completed" ? formatFileSize(job.fileSize) : isBusy ? `${job.progress}%` : ""}</span></div>{isBusy && <><div className="job-progress"><span style={{ width: `${job.progress}%` }} /></div><button type="button" onClick={() => void cancelRender()}>Cancel render</button></>}{job.status === "completed" && <a href={`/api/jobs/${job.id}/download`} download>Download {job.format.toUpperCase()} <ArrowDownToLine size={14} /></a>}{job.error && <p>{job.error}</p>}</div>}
+            {job && <div className="job-card" aria-live="polite"><div><strong>{job.phase}</strong><span>{job.status === "completed" ? formatFileSize(job.fileSize) : isBusy ? `${job.progress}%` : ""}</span></div>{isBusy && <><div className="job-progress" role="progressbar" aria-label="Render progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={job.progress}><span style={{ width: `${job.progress}%` }} /></div><button type="button" onClick={() => void cancelRender()}>Cancel render</button></>}{job.status === "completed" && <><a href={`/api/jobs/${job.id}/download`} download>Download {job.format.toUpperCase()} <ArrowDownToLine size={14} /></a><p className="job-expiry">Download within 24 hours of completion.</p></>}{job.error && <p>{job.error}</p>}</div>}
             {renderError && <p className="source-error" role="alert">{renderError}</p>}
           </div>}
           {clip && clipError && <p className="field-error clip-validation">{clipError}</p>}
         </aside>
       </div>
+      }
       {video?.chapters.length ? <details className="chapters panel"><summary><span><Clock3 size={17} /> Creator chapters <small>{video.chapters.length} FOUND</small></span><ChevronDown size={16} /></summary><div className="chapter-list">{video.chapters.map((chapter, index) => { const from = chapter.startSeconds * 1000; const to = Math.min(video.chapters[index + 1]?.startSeconds * 1000 || durationMs || from + 30_000, from + 60 * 60 * 1000); return <button type="button" key={`${chapter.startSeconds}-${chapter.title}`} onClick={() => { setRange(from, Math.max(from + MIN_CLIP_MS, to)); seek(from); }}><span>{formatShort(from)}</span><strong>{chapter.title}</strong><span>USE CHAPTER ↗</span></button>; })}</div></details> : null}
     </section>
 
