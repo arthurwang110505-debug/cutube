@@ -147,17 +147,15 @@ const VideoPlayer = forwardRef<PlayerHandle, Props>(function VideoPlayer({ video
   }, [videoId]);
 
   if (!video) return <div className="preview-placeholder" aria-label="Your video preview will appear here">
-    <div className="preview-wash" />
-    <div className="preview-top-label"><span className="preview-label-dot" /> THE PREVIEW</div>
-    <div className="placeholder-message"><span className="placeholder-icon"><Film size={22} strokeWidth={1.5} /></span><strong>Your story starts here.</strong><span>Paste a link above to bring your video in.</span></div>
-    <div className="preview-bottom-label"><span>THE LITTLE MOMENTS</span><span>✳ &nbsp; MADE TO SHARE</span></div>
+    <Film size={24} strokeWidth={1.5} aria-hidden="true" />
+    <strong>Preview appears here</strong>
+    <span>Load a video to start trimming.</span>
   </div>;
 
   return <div className="youtube-stage">
     <div ref={host} className="youtube-host" />
     {status !== "ready" && <div className="youtube-overlay">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={video.thumbnail} alt="" className="youtube-poster" />
+      <div className="youtube-poster" aria-hidden="true" style={{ backgroundImage: `url("${video.thumbnail}")` }} />
       <div className="youtube-overlay-content">
         {status === "loading" ? <><LoaderCircle className="spin" size={23} /><strong>Connecting to YouTube</strong><span>Getting your preview ready…</span></> : <><strong>Preview couldn’t load here</strong><span>You can still set the timecodes and share the clip. Some videos don’t allow embedding.</span><a href={watchUrl(video.videoId)} target="_blank" rel="noreferrer">Open on YouTube <ExternalLink size={13} /></a></>}
       </div>
